@@ -55,10 +55,10 @@ struct ExcelRow
 
     bool operator<(const ExcelRow &other) const
     {
-        if (position != other.position)
-            return position < other.position;
+        // if (position != other.position)
+        //     return position < other.position;
 
-        return pb < other.pb;
+        return period < other.period;
     }
 };
 
@@ -85,7 +85,10 @@ map<Node *, set<Node *>> graph_of_parents;
 map<int, vector<ExcelRow>> excel_Z1;
 map<int, vector<ExcelRow>> excel_Z2;
 map<int, vector<ExcelRow>> excel_Z3;
-map<int, vector<ExcelRow>> result;
+map<int, vector<ExcelRow>> tmp;
+map<int, vector<ExcelRow>> result_b;
+map<int, vector<ExcelRow>> result_final;
+map<int, vector<ExcelRow>> result_sorted;
 
 // map<int, vector<ExcelRow>> &excel,
 void create_excel(map<int, vector<ExcelRow>> &excel, int start_period, int quantity)
@@ -305,6 +308,7 @@ map<int, vector<ExcelRow>> merge_excels_implementation(map<int, vector<ExcelRow>
         // operation on sets B \ A. It means get all elements from A and common from B
         for (auto &row : a[depth])
         {
+
             ExcelRow *row_b = find_row(b, row.position, depth);
             if (row_b != NULL)
             {
@@ -326,6 +330,88 @@ map<int, vector<ExcelRow>> merge_excels_implementation(map<int, vector<ExcelRow>
     }
 
     return result;
+}
+
+map<int, vector<ExcelRow>> merge_excels_implementation_v2(map<int, vector<ExcelRow>> &a, map<int, vector<ExcelRow>> &b)
+{
+    map<int, vector<ExcelRow>> result;
+
+    int depth = 0;
+    for (auto &level : a)
+    {
+        depth = level.first;
+
+        // operation on sets B \ A. It means get all elements from A and common from B
+        for (auto &row : a[depth])
+        {
+
+            ExcelRow *row_b = find_row(b, row.position, depth);
+            if (row_b != NULL)
+            {
+                cout << "comparing: " << *row_b << " || " << row << endl;
+                if(row_b->period == row.period){
+                    cout << "merging" << endl;
+                    ExcelRow new_row = merge_rows(row, *row_b);
+                    result[depth].push_back(new_row);
+                }else{
+                    cout << "pushiing" << endl;
+                    result[depth].push_back(row);
+                    result[depth].push_back(*row_b);
+                }
+            }
+            else
+            {
+                result[depth].push_back(row);
+            }
+        }
+
+        // similar us above, but get only unique from B. B\A 
+        for(auto &row: b[depth]){
+            ExcelRow * exist = find_row(result, row.position, depth);
+            if(exist == NULL)
+                result[depth].push_back(row); 
+        }
+    }
+
+    return result;
+}
+
+map<int, vector<ExcelRow>> merge_for_solution(map<int, vector<ExcelRow>> a)
+{
+    map<int, vector<ExcelRow>> result;
+   map<string, int> unique_ids;
+
+    int depth = 0;
+    for (auto it = a.rbegin(); it != a.rend(); ++it)
+    {
+        depth = it->first;
+
+        // operation on sets B \ A. It means get all elements from A and common from B
+        for (auto &row : a[depth])
+        {
+            if(unique_ids.find(row.position) == unique_ids.end()){
+                result[depth].push_back(row);
+                unique_ids[row.position] = depth;
+                // row.depth = depth;
+            }else{
+                row.depth = unique_ids[row.position];
+                result[unique_ids[row.position]].push_back(row);
+            }
+        }
+       
+    }
+
+    return result;
+}
+
+map<int, vector<ExcelRow>> sort_rows_by_period(map<int, vector<ExcelRow>> a)
+{
+    map<int, vector<ExcelRow>> tmp;
+for(auto &pair : a) {
+    std::sort(pair.second.begin(), pair.second.end());
+    tmp[pair.first] = pair.second;
+}
+return tmp;
 }
 
 map<int, vector<ExcelRow>> merge_excels(map<int, vector<ExcelRow>> &a, map<int, vector<ExcelRow>> &b)
@@ -517,11 +603,19 @@ int main()
 
     // calculate_excel_demand()
 
-    result = merge_excels_implementation(excel_Z1, excel_Z3);
+    tmp = merge_excels_implementation(excel_Z1, excel_Z3);
+    save_to_txt(tmp, "tmp.txt");
+    cout << "i m here \n\n\n asdasd" << endl;
+    result_b = merge_excels_implementation_v2(tmp, excel_Z2);
     
+    result_final = merge_for_solution( result_b);
 
-    print_excel(result);
-    save_to_txt(result, "result.txt");
+    // print_excel(result_final);
+    result_sorted = sort_rows_by_period(result_final);
+    save_to_txt(result_final, "result_final.txt");
+    save_to_txt(result_sorted, "result_sorted.txt");
+    print_excel( result_b);
+    save_to_txt( result_b, "result_b.txt");
 
     cout << "program finished successfully" << endl;
     return 0;
