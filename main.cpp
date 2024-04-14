@@ -427,6 +427,35 @@ map<int, vector<ExcelRow>> merge_excels(map<int, vector<ExcelRow>> &a, map<int, 
     return result;
 }
 
+vector<ExcelRow> sort_rows(map<int, vector<ExcelRow>> &a){
+    vector<ExcelRow> result;
+    for(auto &pair : a){
+        for(auto &row : pair.second){
+            result.push_back(row);
+        }
+    }
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+void save_vector_to_file(vector<ExcelRow> &a){
+    std::ofstream outputFile("final_demand.txt"); // Open file for writing
+
+    if (outputFile.is_open())
+    { // Check if file is opened successfully
+        for (auto &row : a)
+        {
+            outputFile << row.position << "," << row.period << "," << row.pn << std::endl; // Write row to file
+        }
+        outputFile.close(); // Close file
+        std::cout << "Excel data has been saved to result.txt" << std::endl;
+    }
+    else
+    {
+        std::cerr << "Unable to open file: result.txt" << std::endl;
+    }
+}
+
 int main()
 {
     Node *guma = new Node("A8_1", "guma");
@@ -616,6 +645,11 @@ int main()
     save_to_txt(result_sorted, "result_sorted.txt");
     print_excel( result_b);
     save_to_txt( result_b, "result_b.txt");
+
+    vector<ExcelRow> sorted = sort_rows(result_b);
+
+
+    save_vector_to_file(sorted);
 
     cout << "program finished successfully" << endl;
     return 0;
